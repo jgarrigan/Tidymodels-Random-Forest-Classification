@@ -6,7 +6,7 @@ pacman::p_load(tidyverse,    # DATA WRANGLING
                furrr,        # PARALLEL PROCESSING
                DataExplorer, # QUICK DATA EXPLORATION
                skimr,        # QUICK DATA EXPLORATION
-               ranger        # RANDOM FORREST ENGINE
+               ranger        # RANDOM FOREST ENGINE
                )
 
 # LOAD THE IRIS DATA
@@ -40,9 +40,9 @@ train <- training(splits)
 # EXTRACT THE TESTING DATAFRAME
 test <- testing(splits)
 
-# SPLIT THE TRAINING DATA INTO 10 GROUPS OF ROUGHLY EQUAL SIZES
+# SPLIT THE TRAINING DATA INTO 5 GROUPS OF ROUGHLY EQUAL SIZES
 cv_splits <- vfold_cv(train,
-                      v = 10, 
+                      v = 5, 
                       strata = 'Species')
 
 # CREATE A PRE-PROCESSING RECIPE ------------------------------------------
@@ -99,14 +99,14 @@ tune_res %>%
   facet_wrap(~ parameter,
              scales = "free_x")+
   labs(x = NULL,
-       y= "AUC")
+       y = "AUC")
 
-# USING A RANGE OF VALUES FROM THE GRID SEARCH BELOW THAT MAXIMIMSE THE 
+# USING A RANGE OF VALUES FROM THE GRID SEARCH BELOW THAT MAXIMIMSES THE 
 # AUC SCORES LETS USE A MORE CONTROLLED GRID WITH 50 COMBINATIONS
 rf_grid <- grid_regular(
   mtry(range = c(2,3)),
-  trees(range = c(1000,1500)),
-  min_n(range = c(3,10)),
+  trees(range = c(250,1500)),
+  min_n(range = c(15,35)),
   levels = 5 
 )
 
@@ -141,10 +141,13 @@ rf_fit %>%
 rf_preds <- rf_fit %>%
   collect_predictions()
 
+# CREATE A CONFUSION MATRIX OF OBSERVED AND PREDICTED CLASSES
 rf_preds %>% 
   conf_mat(truth = Species, estimate = .pred_class)
 
-rf_preds%>%
+# CREATE AN ROC CURVE 
+rf_preds %>%
   roc_curve(truth = Species,
-            estimate = .pred_setosa:.pred_virginica)%>%
+            estimate = .pred_setosa:.pred_virginica) %>%
   autoplot()
+
